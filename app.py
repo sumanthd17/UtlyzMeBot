@@ -7,6 +7,7 @@ import wikipedia
 from bs4 import BeautifulSoup
 import os
 import mechanize
+from pytube import YouTube
 
 
 
@@ -51,7 +52,7 @@ def start(bot,update):
 	#time.sleep(0.2)
 	#print update.message.chat_id
 	bot.sendMessage(chat_id = update.message.chat_id, text = '''
-		Hey %s %s! Welcome to UtlyzMeBot! Type /help for more information regarding the functionalities of this particular bot. In short, this bot will help you search wiki, google, get news bulletins and what not from this particular chat window itself :D 
+		Hey %s %s! Welcome to UtlyzMeBot! Type /help for more information regarding the functionalities of this particular bot. In short, this bot will help you search wiki, google, get news bulletins and what not from this particular chat window itself :D
 	''' %(update.message.from_user.first_name,update.message.from_user.last_name))
 
 
@@ -63,7 +64,7 @@ def fb(bot, update, args):
 	browser.addheaders = [('User-agent', 'Mozilla/5.0 (X11; U; Linux i686; en-US) AppleWebKit/534.7 (KHTML, like Gecko) Chrome/7.0.517.41 Safari/534.7')]
 	browser.set_handle_refresh(False)	#Sometimes hangs without this
 	try:
-		
+
 		url = 'http://www.facebook.com/login.php'
 		soup = authenticate(browser, url, args[0], args[1])	#Parses the html and stores in 'soup'
 		fr_num_box = soup.find('span',attrs={'id':'requestsCountValue'})		#Finds span tags with the given ID
@@ -127,7 +128,7 @@ def lyrics(bot,update,args):
 		error = "Can't find the song you asked for, please try another song"
 		bot.sendChatAction(chat_id = update.message.chat_id, action = ChatAction.TYPING)
 		bot.sendMessage(chat_id = update.message.chat_id, parse_mode=ParseMode.HTML, text = error)
-	
+
 
 
 def wiki(bot, update, args):
@@ -154,6 +155,20 @@ def wiki(bot, update, args):
 		bot.sendChatAction(chat_id = update.message.chat_id, action = ChatAction.TYPING)
 		bot.sendMessage(chat_id = update.message.chat_id, text = error)
 
+def youtube(bot, update, args):
+    try:
+        url = args[0]
+        path = args[1]
+        video = YouTube(url)
+        video = video.streams.filter(progressive=True, file_extension='mp4').order_by('resolution').desc().first()
+        if not os.path.exists(path):
+            os.mkdir(path)
+        video.download(path)
+        message = 'Video successfully downloaded'
+        bot.sendMessage(chat_id = update.message.chat_id, text = message)
+    except:
+        error = 'Please check the url entered'
+        bot.sendMessage(chat_id = update.message.chat_id, text = error)
 
 def help(bot, update):
 	bot.sendChatAction(chat_id = update.message.chat_id, action = ChatAction.TYPING)
@@ -163,6 +178,7 @@ def help(bot, update):
 		/lyrics <name_of_song>		To get lyrics of songs
 		/wiki <topic>			To get wikipedia summary on a given topic
 		/fb <username> <password>	To get certain facebook updates
+        /youtube <url> <path>   To dowload the video
 	''')
 
 
@@ -180,7 +196,7 @@ if __name__=='__main__':
 	#logger = logging.getLogger(__name__)
 
 	updater = Updater(token=TOKEN)
-	
+
 	dispatcher = updater.dispatcher
 
 	dispatcher.add_handler(CommandHandler('start',start))
@@ -192,7 +208,9 @@ if __name__=='__main__':
 	dispatcher.add_handler(CommandHandler('lyrics',lyrics,pass_args = True))
 
 	dispatcher.add_handler(CommandHandler('wiki',wiki,pass_args = True))
-	
+
 	dispatcher.add_handler(CommandHandler('fb',fb,pass_args = True))
-	
+
+    dispatcher.add_handler(CommandHandler('youtube', youtube, pass_args = True))
+
 	updater.start_polling()
